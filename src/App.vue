@@ -1,24 +1,12 @@
 <template>
   <div id="app">
-    {{firebaseData}}
+    <router-view/>
   </div>
 </template>
 
 <script>
-  import {db} from '@/firebase'
-
   export default {
     name: 'App',
-    data(){
-      return{
-        firebaseData:null,
-      };
-    },
-    firestore() {
-        return{
-          firebaseData:db.collection('items')
-        } 
-    },
   }
 </script>
 
