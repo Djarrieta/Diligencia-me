@@ -16,30 +16,36 @@
           </div> 
         </div>
     </div>
+    <PxSave :itemID="cod"/>
   </div>
 </template>
 
 <script>
 import {db} from '@/firebase'
 import PxHeader from '@/components/PxHeader'
+import PxSave from '@/components/PxSave'
   export default {
     name: 'ItemDetalle',
     components:{
         PxHeader,
+        PxSave,
     },
     props:['vista'],
     data(){
       return{
         item:null,
         title:'Detalle item',
-        linkBack:'/items'
+        linkBack:'/items',
+        cod:null
       }
     },
-    firestore() {
+
+    async firestore() {
+      console.log('hola')
       const cod=this.$route.params.cod;
        return{
-        item: db.doc('items/'+cod)
+        item: await db.doc('items/'+cod)
       }
-    },
+    }
   }
 </script>
