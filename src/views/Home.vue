@@ -4,6 +4,7 @@
     Videos, ejemplos y demás información</p>
     <router-link to="ingresar" class=" text-secundary-light">Ingresar</router-link>
     <router-link to="equipos" class=" text-secundary">Equipos</router-link>
+    
   </div>
 </template>
 

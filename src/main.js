@@ -29,7 +29,22 @@ firebase.auth().onAuthStateChanged((u)=>{
   if(u){
     db.collection("users").doc(u.uid.toString()).get()
     .then(u=>{
-      store.state.currentUser={...u.data(),uid:u.id}
+      const e=store.state
+      /* currentUser */
+      e.currentUser={...u.data(),uid:u.id}
+      /* profilePic */
+      if(!e.currentUser.profilePic){
+        e.currentUser={...e.currentUser, profilePic:"https://firebasestorage.googleapis.com/v0/b/adreco-11ef9.appspot.com/o/assets%2FProfilePic.png?alt=media&token=b42aca90-2602-4a1c-a9ab-8cccc24af5b1"}
+      }
+      /* menuPrincipalItems */
+      if(e.currentUser.defaultTeam){
+        e.menuPrincipalItems=[
+          {
+            to:"/"+e.currentUser.defaultTeam+"/tareas",
+            name:"Tareas"
+          },
+        ]
+      }
       mountApp()
     })
   }else{
@@ -44,5 +59,5 @@ function mountApp(){
     render: h => h(App)
   }).$mount('#app')
 }
-export { db,storage};
+export { firebase, db,storage};
 

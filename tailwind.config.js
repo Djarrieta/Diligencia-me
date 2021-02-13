@@ -14,6 +14,9 @@ module.exports = {
         "info":"#E57E1F",
         "success":"#31A24C",
       },
+      inset:{
+        '50%':'50%',
+      },
       margin:{
         "-screen":"-100vw",
         "-2screen":"-200vw"

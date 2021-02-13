@@ -1,5 +1,6 @@
 <template>
   <div class="flex justify-center w-full h-16 border-b border-primary-light bg-primary"> 
+    
     <div class="container relative flex items-center justify-between mx-auto"> 
       <div class="flex">
         <!-- Menu -->
@@ -17,14 +18,12 @@
             @click="menuPrincipal=!menuPrincipal"
             @mouseleave="menuPrincipal=!menuPrincipal" 
             class="absolute top-0 left-0 ml-2">
-            <div  class="flex flex-col px-10 pt-2 pb-6 mt-16 border-b border-l rounded-lg border-primary-light bg-primary">
+            <div  class="flex flex-col px-10 pt-4 pb-6 mt-16 border-b border-l rounded-lg border-primary-light bg-primary">
               <router-link 
-                to="/ingresar"
-                v-if="!$store.state.currentUser"
-                class="w-full px-4 py-1 mb-1 overflow-hidden text-center border-b rounded hover:bg-primary-light border-primary-light text-realced">Ingresar</router-link>
-              <button 
-                v-if="$store.state.currentUser"
-                class="w-full px-4 py-1 mb-1 overflow-hidden text-center border-b rounded hover:bg-primary-light border-primary-light text-realced">Perfil</button>
+                v-for="(i,n) in $store.state.menuPrincipalItems"
+                :key="n"
+                :to="i.to"
+                class="w-full px-4 py-1 mb-1 overflow-hidden text-center border-b rounded hover:bg-primary-light border-primary-light text-realced">{{i.name}}</router-link>
             </div>
           </div>
         </div>
@@ -42,30 +41,29 @@
       <!-- Perfil -->
       <div 
         @click="menuProfile=!menuProfile"
-        class="relative flex items-center w-12 h-12 p-1 mx-1 rounded-full cursor-pointer"
+        class="relative flex items-center w-12 h-12 p-1 mx-1 rounded-full cursor-pointer "
         :class="$store.state.currentUser ? 'bg-realced' : 'bg-primary-light'">
-        <div class="w-full h-full rounded-full bg-primary ">
+        <div class="w-full h-full overflow-hidden rounded-full bg-primary">
+          <img 
+            v-if="$store.state.currentUser" 
+            class="object-cover h-full"
+            :src="$store.state.currentUser.profilePic" 
+            alt="profilepic">
         </div>
         <!-- Menu perfil -->
         <div 
           v-if="menuProfile" 
           @mouseleave="menuProfile=!menuProfile"
           class="absolute top-0 -ml-32 rigth-0">
-          <div  class="flex flex-col px-10 pt-2 pb-6 mt-16 border-b border-l rounded-lg border-primary-light bg-primary">
-            <router-link 
-              to="/"
-              v-if="!$store.state.currentUser"
-              class="w-full px-4 py-1 mb-1 overflow-hidden text-center border-b rounded hover:bg-primary-light border-primary-light text-realced">Inicio</router-link>
+          <div  class="flex flex-col px-10 pt-4 pb-6 mt-16 border-b border-l rounded-lg border-primary-light bg-primary">
             <router-link 
               to="/ingresar"
               v-if="!$store.state.currentUser"
               class="w-full px-4 py-1 mb-1 overflow-hidden text-center border-b rounded hover:bg-primary-light border-primary-light text-realced">Ingresar</router-link>
-            <button 
+            <router-link 
+              to="/perfil"
               v-if="$store.state.currentUser"
-              class="w-full px-4 py-1 mb-1 overflow-hidden text-center border-b rounded hover:bg-primary-light border-primary-light text-realced">Perfil</button>
-            <button 
-              v-if="$store.state.currentUser"
-              class="w-full px-4 py-1 mb-1 overflow-hidden text-center border-b rounded hover:bg-primary-light border-primary-light text-realced">Equipos</button>
+              class="w-full px-4 py-1 mb-1 overflow-hidden text-center whitespace-no-wrap border-b rounded hover:bg-primary-light border-primary-light text-realced"> {{$store.state.currentUser.name}} </router-link>
             <button 
               v-if="$store.state.currentUser"
               @click="signOut()" 
@@ -73,6 +71,19 @@
           </div>
         </div>
       </div>
+    </div>
+    <!-- Alerts -->
+    <div 
+      v-if="this.$store.state.alert"
+      class="fixed top-0 left-0 w-full mt-16 ml-3 ">
+        <div 
+          v-for="(e,n) in $store.state.alert"
+          :key="n"
+          class="z-auto w-64 p-2 my-2 border rounded-lg cursor-pointer bg-primary-light">
+           <span v-if="e.type==='success'" class="text-success">{{e.text}}</span>
+           <span v-if="e.type==='info'" class="text-info">{{e.text}}</span>
+           <span v-if="e.type==='error'" class="text-error">{{e.text}}</span>
+        </div>
     </div>
   </div>
 </template>
@@ -90,7 +101,24 @@ export default {
   methods:{
     signOut(){
       firebase.auth().signOut().catch(e=>{console.error(e)})
-    }
+    },
+  },
+  watch:{
+    '$store.state.alert'(val){
+      if(val.length>0){
+        setTimeout(() => {
+          this.$store.state.alert.pop()
+        }, 2000);
+      }
+    },
+    '$store.state.currentUser'(u){
+      /* Este watcher cambia la ruta una vez carga firebase y el estado de vuex, porque ambos se demoran en responder */
+      if(u  && this.$route.path!="/perfil"){
+        this.$router.replace("/perfil")
+      }else if(this.$route.path!="/"){
+        this.$router.replace("/")
+      }
+      },
   }
 
 }

@@ -53,10 +53,9 @@
           type="password"
           class="px-1 py-1 rounded text-secundary focus:outline-none bg-primary-light focus:bg-primary-light active:bg-primary-light">
       </div>
-      <!-- Problems -->
-      <span class=" text-error"> {{problems}} </span>
+
       <!-- Acción -->
-      <button @click="runAction" class="py-2 my-3 text-xl rounded-lg bg-realced hover:text-secundary-light focus:outline-none hover:text-letraLight"> {{action}} </button>
+      <Button @buttonClicked="runAction()" :name="action" />
       <div class="flex flex-col items-start pt-2 mt-2 border-t border-primary-light">
         <button v-if="action==='Ingresar'" @click="resetPass()" class="text-realced hover:text-secundary-light focus:outline-none">Restablecer contraseña</button>
         <button 
@@ -68,10 +67,12 @@
 </template>
 
 <script>
-import firebase from "firebase"
+import {firebase} from "@/main.js"
 import {db} from "@/main.js"
+import Button from "@/components/Button"
 export default {
   name:"Ingresar",
+  components:{Button},
   data(){
     return{
       confirmation:false,
@@ -82,41 +83,9 @@ export default {
       email:"",
       password:null,
       password2:null,
-
-      problems:null
     }
   },
-  mounted(){
-    if(localStorage.action){this.action=localStorage.action}
-    if(localStorage.name){this.name=localStorage.name}
-    if(localStorage.indicative){this.indicative=localStorage.indicative}
-    if(localStorage.whatsapp){this.whatsapp=localStorage.whatsapp}
-    if(localStorage.email){this.email=localStorage.email}
 
-  },
-  watch:{
-    action(){
-      localStorage.action=this.action
-    },
-    name(){
-      localStorage.name=this.name
-    },
-    indicative(){
-      localStorage.indicative=this.indicative
-    },
-    whatsapp(){
-      localStorage.whatsapp=this.whatsapp
-    },
-    email(){
-      localStorage.email=this.email
-    },
-
-    problems(){
-      if(this.problems){
-        setTimeout(()=>{this.problems=null},2000)
-      }
-    }
-  },
   methods:{
     runAction(){
       if(this.action==="Ingresar"){
@@ -126,12 +95,14 @@ export default {
       }
     },
     signup(){
-      this.problems=null;
-      if(this.password!=this.password2){this.problems="Las contraseñas no coinciden."}
-      if(!this.whatsapp){this.problems="Número de teléfono no válido."}
-      if(!this.indicative){this.problems="Número de teléfono no válido."}
-      if(!this.name){this.problems="Nombre inválido."}
-      if(this.problems){return}
+      if(this.password!=this.password2){
+        this.alert("Las contraseñas no coinciden.","error")}
+      if(!this.whatsapp || !this.indicative){
+        this.alert("Número de teléfono no válido.","error")}
+      if(!this.name){
+        this.alert("Nombre no válido.","error")}
+      if(this.$store.state.alert.length>0){return}
+
       firebase.auth()
       .createUserWithEmailAndPassword(this.email,this.password)
       .then((currentUser)=>{
@@ -141,18 +112,26 @@ export default {
           indicative:this.indicative,
           whatsapp:this.whatsapp,
         })
+        .then(()=>{
+          this.alert("Cuenta creada con éxito. Ve a crear tu primer equipo.","success")
+        })
       })
       .catch(e=>{
         console.error(e)
-        if(e.code==="auth/invalid-email"){this.problems="Correo inválido."}
-        if(e.code==="auth/email-already-in-use"){this.problems="Ya hay una cuenta vinculada a este correo."}
-        if(e.code==="auth/weak-password"){this.problems="Coloca una contraseña más dificil de adivinar."}
+        if(e.code==="auth/invalid-email"){
+          this.alert("Correo inválido.","error")}
+        if(e.code==="auth/email-already-in-use"){
+          this.alert("Ya hay una cuenta vinculada a este correo.","error")}
+        if(e.code==="auth/weak-password"){  
+          this.alert("Coloca una contraseña más dificil de adivinar.","error")}
       })
     },
     login(){
-      this.problems=null;
-      if(!this.password){this.problems="La contraseña no puede estar vacía."}
-      if(this.problems){return}
+      if(!this.password){
+        this.alert("Contraseña inválida.","error")
+      }
+      if(this.$store.state.alert.length>0){return}
+
       firebase.auth()
       .signInWithEmailAndPassword(this.email,this.password)
       .then(()=>{
@@ -161,23 +140,38 @@ export default {
       })
       .catch(e=>{
         console.error(e)
-        if(e.code==="auth/argument-error"){this.problems="Datos inválidos."}
-        if(e.code==="auth/invalid-email"){this.problems="Correo electrónico inválido."}
-        if(e.code==="auth/user-not-found"){this.problems="El correo ingresado no existe."}
-        if(e.code==="auth/wrong-password"){this.problems="Contraseña incorrecta."}
+        if(e.code==="auth/argument-error"){
+          this.alert("Datos inválidos.","error")
+        }
+        if(e.code==="auth/invalid-email"){
+          this.alert("Correo electrónico inválido.","error")
+        }
+        if(e.code==="auth/user-not-found"){
+          this.alert("El correo ingresado no existe.","error")
+        }
+        if(e.code==="auth/wrong-password"){
+          this.alert("Contraseña incorrecta.","error")
+        }
       })
     },
     resetPass(){
-      if(!this.email){this.problems="Coloca por favor un correo registrado para hacer el proceso de cambio de contraseña."}
-      if(this.problems){return}
+      if(!this.email){
+        this.alert("Correo inválido. Digita un correo para enviar un correo de recuperación","error")
+        }
+      if(this.$store.state.alert.length>0){return}
       firebase.auth()
         .sendPasswordResetEmail(this.email)
-        .then(this.problems=`Hemos enviado un correo a ${this.email}.`)
+        .then(()=>{
+          this.alert(`Hemos enviado un correo a ${this.email}.`,"info")})
         .catch(e=>{
           console.error(e)
-          if (e.code == "auth/user-not-found")
-          {this.problems=`No hay ninguna cuenta asociada a ${this.email}. Puedes crear una nueva.`}
+          if (e.code == "auth/user-not-found"){
+            this.alert(`No hay ninguna cuenta asociada a ${this.email}. Puedes crear una nueva.`,"error")
+          }
         })
+    },
+    alert(text,type){
+      this.$store.state.alert.unshift({text,type})
     },
     changeAction(){
       if(this.action==="Ingresar"){

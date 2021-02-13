@@ -1,39 +1,66 @@
 import Vue from 'vue'
 import VueRouter from 'vue-router'
+import store from "@/store/index.js"
+
 import Home from '@/views/Home.vue'
-import Empezar from '@/views/Empezar.vue'
 import Ingresar from '@/views/Ingresar.vue'
 import Perfil from '@/views/Perfil.vue'
-import Tienda from '@/views/Tienda.vue'
+import Equipo from '@/views/Equipo.vue'
+import Tareas from '@/views/Tareas.vue'
+import Error404 from '@/views/Error404.vue'
 
 Vue.use(VueRouter)
 
 const routes = [
   {
-    path: '/Empezar',
-    name: 'Empezar',
-    component: Empezar
-  },
-  {
     path: '/',
     name: 'Home',
-    component: Home
+    component: Home,
+    meta:{
+      restrictions:"none"
+    }
   },
   {
     path: '/ingresar',
     name: 'Ingresar',
-    component:Ingresar
+    component:Ingresar,
+    meta:{
+      restrictions:"noLoggedOnly"
+    }
   },
   {
     path: '/Perfil',
     name: 'Perfil',
-    component:Perfil
+    component:Perfil,
+    meta:{
+      restrictions:"loggedOnly"
+    }
   },
   {
-    path: '/Tienda',
-    name: 'Tienda',
-    component:Tienda
+    path: '/equipo/:id',
+    name: 'Equipo',
+    component:Equipo,
+    meta:{
+      restrictions:"loggedOnly"
+    }
+  },
+  {
+    path: '/:team/tareas',
+    name: 'Tareas',
+    component:Tareas,
+    meta:{
+      restrictions:"teamedOnly"
+    }
+  },
+  {
+    path:'*',
+    name:'Error404',
+    component:Error404,
+    meta:{
+      restrictions:"none"
+    }
   }
+
 ]
 
 const router = new VueRouter({
@@ -42,17 +69,44 @@ const router = new VueRouter({
   routes
 })
 
-/* router.beforeEach((to,from,next)=>{
-  let onlyLoggedIn=to.matched.some(record=>record.meta.onlyLoggedIn)
-  let onlyConfirmated=to.matched.some(record=>record.meta.onlyConfirmated)
+//redirección automática cuando no hay usuario
+router.beforeEach((to,from,next) => {
+  const restrictions=to.meta.restrictions
+  const user=store.state.currentUser!=null
+  let team=null
+  
+  if(user && store.state.currentUser.defaultTeam){
+    team=store.state.currentUser.defaultTeam
+  }
+   
+  if(user && restrictions==="noLoggedOnly"){
+    store.state.alert.unshift(
+      {
+        text:"No puedes ingresar, ya ingresaste. Finaliza sesión primero.",
+        type:"error"
+      }
+    )
+    next("/perfil")
+  }else if(!user && restrictions==="loggedOnly"){
+    store.state.alert.unshift(
+      {
+        text:"Necesitas una cuenta, crea una o ingresa si ya la tienes.",
+        type:"error"
+      }
+    )
+    next("/ingresar")
+  }else if(!team && restrictions==="teamedOnly"){
+    store.state.alert.unshift(
+      {
+        text:"Necesitas un equipo para continuar. Agrega un equipo primero.",
+        type:"error"
+      }
+    )
+    next("/perfil")
+  }else{
+    next();
+  }
 
-  if(onlyLoggedIn && !this.$store.state.currentUser){
-      if(onlyConfirmated && !this.$store.state.currentUser.confirmated){
-          next({name:"Confirmacion"})
-        }else{
-          next({name:"Ingresar"})
-        }
-    }
-}) */
+});
 
 export default router
