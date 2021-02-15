@@ -12,7 +12,7 @@
           <div class="flex flex-col">
             <label>Nombre</label>
             <input 
-              v-model="name"
+              v-model="$store.state.currentUser.name"
               type="text"
               class="px-1 py-1 rounded text-secundary focus:outline-none bg-primary-light focus:bg-primary-light">
           </div>
@@ -21,13 +21,13 @@
             <label>WhatsApp</label>
             <div class="flex items-center overflow-hidden rounded bg-primary-light">
               <input 
-                v-model="indicative"
+                v-model="$store.state.currentUser.indicative"
                 type="text"
                 class="w-10 px-1 py-1 text-center bg-primary-light focus:outline-none "
                 oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1')">
               <span class="flex items-center h-full">|</span>
               <input 
-                v-model="whatsapp"
+                v-model="$store.state.currentUser.whatsapp"
                 type="text"
                 class="px-1 py-1 bg-primary-light focus:outline-none"
                 oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1')">
@@ -37,7 +37,7 @@
           <div class="flex flex-col ">
             <label>Correo</label>
             <input 
-              v-model="email"
+              v-model="$store.state.currentUser.email"
               disabled
               type="email"
               class="px-1 py-1 rounded bg-primary-light focus:outline-none">
@@ -60,7 +60,7 @@
         </div>
         <!-- Foto -->
         <div class="relative flex items-center justify-center w-full overflow-hidden">
-          <img class="z-0 object-cover w-64 h-64 rounded-full" :src="profilePicTemporal ? profilePicTemporal : profilePic" alt="profilePicture">
+          <img class="z-0 object-cover w-64 h-64 rounded-full" :src="profilePicTemporal ? profilePicTemporal : $store.state.currentUser.profilePic" alt="profilePicture">
           <input 	accept="image/png, image/jpeg" id="inputFile" class="absolute z-10 w-full h-full -mt-16 cursor-pointer focus:outline-none" type="file" @change="getProfilePictemporal()">
         </div >
       </div>
@@ -77,15 +77,25 @@
           <div 
             v-for="(i,n) in teams" 
             :key="n"
-            @click="$router.replace('/equipo/'+i.id)"
-            class="flex items-center justify-between w-full h-24 px-2 my-1 border rounded-lg cursor-pointer bg-primary-dark border-primary-light">
-              <div class="flex items-center">
+            
+            class="flex items-center justify-between w-full h-24 px-2 my-1 border rounded-lg bg-primary-dark border-primary-light">
+              <!-- Logo Team -->
+              <div 
+                class="flex items-center cursor-pointer" 
+                @click="$router.replace('/equipo/'+i.id)"  >
                 <img class="object-cover w-16 h-16 mr-2 rounded-full " :src="i.teamPic" alt="teamPic">
                 <span>{{i.name}}</span>
               </div>
               <div class="flex items-center">
                 <span>{{i.members.length}} Miembros </span>
-                <svg class="h-10 ml-4 " :class="i.id===defaultTeam ? 'text-realced' : ' text-primary' " xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg 
+                  @click="changeDefaultTeam(i.id)"
+                  class="h-10 ml-4 cursor-pointer" 
+                  :class="i.id===defaultTeam ? 'text-realced' : ' text-primary' " 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                 </svg>
               </div>
@@ -113,14 +123,6 @@ export default {
   components:{Button,Loading},
   data(){
     return{
-      uid:null,
-      name:null,
-      indicative:null,
-      whatsapp:null,
-      email:null,
-      profilePic:null,
-      defaultTeam:null,
-
       profilePicTemporal:null,
       teams:[],
       progress:0,
@@ -129,66 +131,33 @@ export default {
   },
   mounted(){
     if(this.$store.state.currentUser){
+      db.collection("teams").get()
+      .then((teams)=>{teams.forEach(team => {
+        const members=team.data().members
 
-      this.uid=this.$store.state.currentUser.uid
-      this.name=this.$store.state.currentUser.name
-      this.indicative=this.$store.state.currentUser.indicative
-      this.whatsapp=this.$store.state.currentUser.whatsapp
-      this.email=this.$store.state.currentUser.email
-      this.profilePic=this.$store.state.currentUser.profilePic
-      this.defaultTeam=this.$store.state.currentUser.defaultTeam
+        const matches=members.filter(x=>x.email===this.email)
+        if(matches.length>0){
+          this.teams.push({...team.data(),id:team.id})
+        }
+        this.loading=false
+      })})
     }
-
-    db.collection("teams").get()
-    .then((teams)=>{teams.forEach(team => {
-      const members=team.data().members
-
-      const matches=members.filter(x=>x.email===this.email)
-      if(matches.length>0){
-        this.teams.push({...team.data(),id:team.id})
-      }
-      this.loading=false
-    })})
   },
   methods:{
     saveProfile(){
-      if(this.progress>0){
-        this.$store.state.alert.unshift(
-          {
-            text:"Espera un momento que termine de cargar.",
-            type:"info"
-          }
-        )
-      }
-      if(!this.name){
-        this.$store.state.alert.unshift(
-          {
-            text:"Nombre inválido.",
-            type:"error"
-          }
-        )
-      }
-      if(!this.indicative){
-        this.$store.state.alert.unshift(
-          {
-            text:"Indicativo de WhatsApp inválido.",
-            type:"error"
-          }
-        )
-      }
-      if(!this.whatsapp){
-        this.$store.state.alert.unshift(
-          {
-            text:"Número de WhatsApp inválido.",
-            type:"error"
-          }
-        )
-      }
+      const u=this.$store.state.currentUser
+      if(!u.name){
+        this.alert("Nombre inválido.","error")}
+      if(!u.indicative){
+        this.alert("Indicativo de WhatsApp inválido.","error")}
+      if(!u.whatsapp){
+        this.alert("Número de WhatsApp inválido.","error")}
       if(this.$store.state.alert.length>0){return}
 
       if (this.profilePicTemporal){
-        this.progress=0.1
-        const storageFileName=`user/${this.uid}/profilePic.jpg`
+        this.$store.state.loading=true
+
+        const storageFileName=`user/${u.uid}/profilePic.jpg`
         const storageRef = firebase.storage().ref()
 
         const profilePicLocalRef=document.getElementById("inputFile").files[0]
@@ -198,18 +167,17 @@ export default {
         uploadTask.on("state_change",
           x=>{
             //progreso
-            this.progress=x.bytesTransferred/x.totalBytes
+            console.log(x.bytesTransferred/x.totalBytes)
           },
           e=>{
             //error,
             console.log(e)
-             this.progress=0
+             this.$store.state.loading=false
           },
           ()=>{
             uploadTask.snapshot.ref.getDownloadURL()
             .then((downloadURL)=>{
-              this.profilePic=downloadURL
-              this.$store.state.currentUser.profilePic=downloadURL
+              u.profilePic=downloadURL
               this.profilePicTemporal=null
               this.saveFirestoreInfo()
             })
@@ -220,15 +188,15 @@ export default {
       }
     },
     saveFirestoreInfo(){
-      this.progress=0.9
+      const u=this.$store.state.currentUser
       db.collection("users")
-      .doc(this.$store.state.currentUser.uid)
+      .doc(u.uid)
       .set({
-        name:this.name,
-        indicative:this.indicative,
-        whatsapp:this.whatsapp,
-        email:this.email,
-        profilePic:this.profilePic,
+        name:u.name,
+        indicative:u.indicative,
+        whatsapp:u.whatsapp,
+        email:u.email,
+        profilePic:u.profilePic,
       })
       .then(()=>{
         this.$store.state.alert.unshift(
@@ -237,16 +205,35 @@ export default {
             type:"success"
           }
         )
-        this.progress=0})
+        this.$store.state.loading=false
+        })
       .catch(e=>{
         console.error(e)
-        this.progress=0})
+        })
     },
     getProfilePictemporal(){
       const file=document.getElementById("inputFile").files[0]
       if(!file){return}
       this.profilePicTemporal=URL.createObjectURL(file)
-    }
+    },
+    changeDefaultTeam(idTeam){
+      if(idTeam!=this.$store.state.currentUser.defaultTeam){
+        this.$store.state.loading=true
+        db.collection("users")
+        .doc(this.$store.state.currentUser.uid)
+        .update({defaultTeam:idTeam})
+        .then(()=>{
+          this.$store.state.currentUser.defaultTeam=idTeam
+          this.alert("Ahora estás en el equipo " + idTeam,"success")
+          this.$store.state.loading=false
+        })
+      }
+    },
+    alert(text,type){
+      this.$store.state.alert.unshift({text,type})
+    },
+
+
 /*     SendMail(){
       window.Email.send(
         {

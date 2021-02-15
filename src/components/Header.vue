@@ -43,7 +43,7 @@
         @click="menuProfile=!menuProfile"
         class="relative flex items-center w-12 h-12 p-1 mx-1 rounded-full cursor-pointer "
         :class="$store.state.currentUser ? 'bg-realced' : 'bg-primary-light'">
-        <div class="w-full h-full overflow-hidden rounded-full bg-primary">
+        <div class="flex items-center justify-center w-full h-full overflow-hidden rounded-full bg-primary">
           <img 
             v-if="$store.state.currentUser" 
             class="object-cover h-full"
@@ -54,7 +54,7 @@
         <div 
           v-if="menuProfile" 
           @mouseleave="menuProfile=!menuProfile"
-          class="absolute top-0 -ml-32 rigth-0">
+          class="absolute top-0 pb-4 -ml-32 rigth-0">
           <div  class="flex flex-col px-10 pt-4 pb-6 mt-16 border-b border-l rounded-lg border-primary-light bg-primary">
             <router-link 
               to="/ingresar"
@@ -63,7 +63,7 @@
             <router-link 
               to="/perfil"
               v-if="$store.state.currentUser"
-              class="w-full px-4 py-1 mb-1 overflow-hidden text-center whitespace-no-wrap border-b rounded hover:bg-primary-light border-primary-light text-realced"> {{$store.state.currentUser.name}} </router-link>
+              class="w-full px-4 py-1 mb-1 overflow-hidden text-center whitespace-no-wrap border-b rounded hover:bg-primary-light border-primary-light text-realced"> {{$store.state.currentUser.name || "perfil"}} </router-link>
             <button 
               v-if="$store.state.currentUser"
               @click="signOut()" 
@@ -107,7 +107,8 @@ export default {
     '$store.state.alert'(val){
       if(val.length>0){
         setTimeout(() => {
-          this.$store.state.alert.pop()
+          if(val.length>0){
+            this.$store.state.alert.pop()}
         }, 2000);
       }
     },

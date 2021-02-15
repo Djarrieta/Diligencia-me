@@ -103,21 +103,38 @@ export default {
         this.alert("Nombre no válido.","error")}
       if(this.$store.state.alert.length>0){return}
 
+      this.$store.state.loading=true
       firebase.auth()
       .createUserWithEmailAndPassword(this.email,this.password)
       .then((currentUser)=>{
-        db.collection("users").doc(currentUser.user.uid.toString()).set({
+        const uid =currentUser.user.uid.toString()
+        this.$store.state.currentUser={uid:uid}
+        db.collection("users").doc(uid).set({
           name:this.name,
           email:this.email,
           indicative:this.indicative,
           whatsapp:this.whatsapp,
         })
         .then(()=>{
+          /* Actualiza valores locales */
+          this.$store.state.currentUser=
+          {
+            ...this.$store.state.currentUser, 
+            name:this.name,
+            email:this.email,
+            indicative:this.indicative,
+            whatsapp:this.whatsapp,
+          }
+          console.log(this.$store.state.currentUser)
+          this.$store.state.loading=false
           this.alert("Cuenta creada con éxito. Ve a crear tu primer equipo.","success")
         })
       })
       .catch(e=>{
         console.error(e)
+        this.$store.state.loading=false
+        if(e.code==="auth/network-request-failed"){
+          this.alert("Problemas de conexión.","error")}
         if(e.code==="auth/invalid-email"){
           this.alert("Correo inválido.","error")}
         if(e.code==="auth/email-already-in-use"){
@@ -131,15 +148,16 @@ export default {
         this.alert("Contraseña inválida.","error")
       }
       if(this.$store.state.alert.length>0){return}
-
+      this.$store.state.loading=true
       firebase.auth()
       .signInWithEmailAndPassword(this.email,this.password)
       .then(()=>{
-        this.problems = null
         this.$router.replace("/")
+        this.$store.state.loading=false
       })
       .catch(e=>{
         console.error(e)
+        this.$store.state.loading=false
         if(e.code==="auth/argument-error"){
           this.alert("Datos inválidos.","error")
         }
@@ -159,13 +177,17 @@ export default {
         this.alert("Correo inválido. Digita un correo para enviar un correo de recuperación","error")
         }
       if(this.$store.state.alert.length>0){return}
+
+      this.$store.state.loading=true
       firebase.auth()
         .sendPasswordResetEmail(this.email)
         .then(()=>{
+          this.$store.state.loading=false
           this.alert(`Hemos enviado un correo a ${this.email}.`,"info")})
         .catch(e=>{
           console.error(e)
           if (e.code == "auth/user-not-found"){
+            this.$store.state.loading=false
             this.alert(`No hay ninguna cuenta asociada a ${this.email}. Puedes crear una nueva.`,"error")
           }
         })

@@ -1,7 +1,5 @@
 <template>
   <div class="container flex flex-col w-full mt-3">
-    <!-- Barra de carga -->
-    <progress v-if="progress" class="fixed bottom-0 left-0 w-full" :value="progress"/>
     <!-- Datos Equipo -->
     <section class="p-2 my-2 border-b border-l rounded-lg border-primary-light bg-primary">
       <h1 class="pl-4 text-4xl border-b border-primary-light">DATOS DEL EQUIPO</h1>
@@ -16,7 +14,7 @@
               type="text"
               :disabled="id!=0"
               class="px-1 py-1 rounded text-secundary focus:outline-none bg-primary-light focus:bg-primary-light"
-              maxlength="7"
+              maxlength="10"
               oninput="this.value = this.value.replace(' ','').toLowerCase()">
           </div>
           <!-- Nombre -->
@@ -73,23 +71,31 @@
     </section>
     <!-- MIEMBROS -->
     <section class="p-2 my-2 border-b border-l rounded-lg border-primary-light bg-primary">
-      <div class="flex flex-col justify-between pl-4 text-4xl border-b sm:flex-row border-primary-light">
-        <h1>MIEMBROS</h1>
-         <Button name="Agregar" class="px-4" @buttonClicked="addUser()"/>
+      <div class="flex justify-between pl-4 text-4xl border-b border-primary-light">
+        <h1 >MIEMBROS</h1>
+         <Button name="Agregar" class="px-4" />
       </div>
-      <div class="flex flex-col sm:flex-row">
+      <div class="flex sm:flex-row">
         <!-- Lista -->
-        <div class="flex flex-col items-center w-full">
+        <div class="flex flex-col items-center w-full pt-2">
           <div 
             v-for="(i,n) in members" 
             :key="n"
-            class="w-full">
-              hola
+            class="flex items-center justify-between w-full h-24 px-2 my-1 border rounded-lg bg-primary-dark border-primary-light">
+              <!-- profile member -->
+              <div 
+                class="flex items-center cursor-pointer">
+                <!-- <img class="object-cover w-16 h-16 mr-2 rounded-full "  alt="profilePicMember"> -->
+                <span>{{i.email}}</span>
+              </div>
+              <div>
+                <span> {{i.roll}} </span>
+              </div>
           </div>
-          <Loading v-if="loading"/>
+          <Loading v-if="localLoading"/>
           <!-- Esto está muy vacío --> 
-          <div v-if="!members.length && !loading" class="px-3 my-6 sm:px-0 sm:w-1/3">
-            <span class="text-lg text-center">Esto está muy vacío. <strong class=" text-secundary-light">¡Agrega Miembros a tu Equipo!</strong></span>
+          <div v-if="!members.length && !localLoading" class="px-3 my-6 sm:px-0 sm:w-1/3">
+            <span class="text-lg text-center">Esto está muy vacío. <strong class=" text-secundary-light">¡Agrega miembros a tu equipo!</strong></span>
             <img class="mt-6" src="https://firebasestorage.googleapis.com/v0/b/adreco-11ef9.appspot.com/o/assets%2Flist-is-empty.png?alt=media&token=9d41e34a-eb7c-4573-a41f-6fefff42e4bb" alt="list-is-empty">
           </div>
         </div>
@@ -116,24 +122,25 @@ export default {
       email:"",
       dir:"",
       teamPic:"",
+      members:[],
 
       teamPicTemporal:"",
-      members:[],
-      progress:0,
-      loading:true
+      localLoading:false
     }
   },
   created(){
     this.id = this.$route.params.id;
+    
     if(this.id==0){
       this.teamPic="https://firebasestorage.googleapis.com/v0/b/adreco-11ef9.appspot.com/o/assets%2FTeamPic.png?alt=media&token=93ea1dbb-e7ff-4fbf-8dfd-21d2718c6e66"
-      this.loading=false
     }else{
+      this.$store.state.loading=true
+      console.log("arranca a buscar los datos iniciales")
       db.collection("teams").doc(this.id).get()
       .then((info)=>{
         if(!info.exists){
           this.$router.replace("/perfil")
-          this.loading=false
+          this.localLoading=false
           return
         }
 
@@ -144,10 +151,11 @@ export default {
         this.email=data.email
         this.dir=data.dir
         this.teamPic=data.teamPic
-        this.loading=false
+        this.members=data.members
+        this.$store.state.loading=false
 
       }).catch(e=>{
-        this.loading=false
+        this.$store.state.loading=false
         console.log(e)
       })
     }
@@ -177,8 +185,8 @@ export default {
       }
       if(this.$store.state.alert.length>0){return}
 
+      this.$store.state.loading=true
       if (this.teamPicTemporal){
-        this.progress=0.1
         const storageFileName=`teams/${this.alias}/teamPic.jpg`
         const storageRef = firebase.storage().ref()
 
@@ -189,12 +197,12 @@ export default {
         uploadTask.on("state_change",
           x=>{
             //progreso
-            this.progress=x.bytesTransferred/x.totalBytes
+            console.log(x.bytesTransferred/x.totalBytes)
           },
           e=>{
             //error,
             console.log(e)
-             this.progress=0
+            this.$store.state.loading=false
           },
           ()=>{
             uploadTask.snapshot.ref.getDownloadURL()
@@ -210,7 +218,6 @@ export default {
       }
     },
     saveFirestoreInfo(){
-      this.progress=0.9
       db.collection("teams")
       .doc(this.alias)
       .set({
@@ -224,17 +231,20 @@ export default {
         ],
       })
       .then(()=>{
+        this.$store.state.loading=false
         this.$store.state.alert.unshift(
           {
             text:"Has guardado tus cambios satisfactoriamente!",
             type:"success"
           }
         )
+        
         this.$router.push("/equipo/"+this.alias)
-        this.progress=0})
+      })
       .catch(e=>{
         console.error(e)
-        this.progress=0})
+        this.$store.state.loading=false
+      })
     },
     addUser(){},
   }
