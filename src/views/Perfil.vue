@@ -91,7 +91,7 @@
                 <svg 
                   @click="changeDefaultTeam(i.id)"
                   class="h-10 ml-4 cursor-pointer" 
-                  :class="i.id===defaultTeam ? 'text-realced' : ' text-primary' " 
+                  :class="i.id===$store.state.currentUser.defaultTeam ? 'text-realced' : ' text-primary' " 
                   xmlns="http://www.w3.org/2000/svg" 
                   fill="none" 
                   viewBox="0 0 24 24" 
@@ -130,20 +130,25 @@ export default {
     }
   },
   mounted(){
-    if(this.$store.state.currentUser){
-      db.collection("teams").get()
-      .then((teams)=>{teams.forEach(team => {
-        const members=team.data().members
-
-        const matches=members.filter(x=>x.email===this.email)
-        if(matches.length>0){
-          this.teams.push({...team.data(),id:team.id})
-        }
-        this.loading=false
-      })})
-    }
+    this.loadTeams()
   },
   methods:{
+    loadTeams(){
+      if(this.$store.state.currentUser){
+        this.loading=true
+        this.teams=[]
+        db.collection("teams").get()
+        .then((teams)=>{teams.forEach(team => {
+          const members=team.data().members
+
+          const matches=members.filter(x=>x.email===this.$store.state.currentUser.email)
+          if(matches.length>0){
+            this.teams.push({...team.data(),id:team.id})
+          }
+          this.loading=false
+        })})
+      }
+    },
     saveProfile(){
       const u=this.$store.state.currentUser
       if(!u.name){
@@ -224,15 +229,18 @@ export default {
         .update({defaultTeam:idTeam})
         .then(()=>{
           this.$store.state.currentUser.defaultTeam=idTeam
+          this.$store.state.menuPrincipalItems=this.$store.state.menuPrincipalItems.map(i=>{
+            return {...i,to: "/"+idTeam+"/"+i.to.split("/")[2]}
+          })
           this.alert("Ahora estás en el equipo " + idTeam,"success")
           this.$store.state.loading=false
+          this.loadTeams()
         })
       }
     },
     alert(text,type){
       this.$store.state.alert.unshift({text,type})
     },
-
 
 /*     SendMail(){
       window.Email.send(

@@ -73,7 +73,7 @@
     <section class="p-2 my-2 border-b border-l rounded-lg border-primary-light bg-primary">
       <div class="flex justify-between pl-4 text-4xl border-b border-primary-light">
         <h1 >MIEMBROS</h1>
-         <Button name="Agregar" class="px-4" />
+         <Button @buttonClicked="addMember()" name="Agregar" class="px-4" />
       </div>
       <div class="flex sm:flex-row">
         <!-- Lista -->
@@ -246,7 +246,9 @@ export default {
         this.$store.state.loading=false
       })
     },
-    addUser(){},
+    addMember(){
+      console.log("this.addMember")
+    },
   }
 }
 </script>
